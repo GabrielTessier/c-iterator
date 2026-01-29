@@ -24,6 +24,7 @@ void __attribute__((naked)) iterator_end(void) {
       "movb $1, 24(%rdi)\n\t"
       "movq $0, %rsi\n\t"
       "call iterator_yield");
+  // implicit yield with 0
 }
 
 void iterator_init(Iterator *iter, void (*f)(Iterator*, void*), void *args) {
@@ -45,10 +46,10 @@ void iterator_init(Iterator *iter, void (*f)(Iterator*, void*), void *args) {
   iter->rsp = rsp;
 }
 
-void* __attribute__((naked)) iterator_yield(Iterator *iter, void *val) {
+void* iterator_yield(Iterator *iter, void *val) {
+  (void)iter;
   iterator_save_context();
-  asm("movq %rdi, %rdx\n\t"      // iter
-      "movq 16(%rdx), %rdx\n\t"  // iter->rsp_caller => %rdx
+  asm("movq 16(%rdi), %rdx\n\t"  // iter->rsp_caller => %rdx
       "movq %rsp, (%rdi)\n\t"    // %rsp => iter->rsp
       "movq %rdx, %rsp\n\t"      // %rdx (iter->rsp_caller) => %rsp
       "movq %rsi, %rax\n\t"      // return val
@@ -60,11 +61,11 @@ void* __attribute__((naked)) iterator_yield(Iterator *iter, void *val) {
       "popq %rbp\n\t"
       "popq %rsi\n\t"
       "popq %rdi");
-  asm("popq %rbp\n\t"
-      "ret");
+  return val;
 }
 
 void* iterator_next(Iterator *iter) {
+  (void)iter;
   iterator_save_context();
   asm("movq %rsp, 16(%rdi)\n\t"
       "movq (%rdi), %rsp\n\t"
@@ -77,6 +78,7 @@ void* iterator_next(Iterator *iter) {
       "popq %rsi\n\t"
       "popq %rdi\n\t"
       "ret");
+  return NULL; // never executed because "ret" came before
 }
 
 bool iterator_finish(Iterator *iter) {
