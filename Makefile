@@ -4,8 +4,8 @@ LD=gcc
 
 BUILD=release
 
-CFLAGS=
-LDFLAGS=
+CFLAGS=-O0
+LDFLAGS=-O0
 
 ifeq ($(BUILD), debug)
 	CFLAGS += -Wall -Wextra -g
