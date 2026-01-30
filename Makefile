@@ -2,10 +2,11 @@
 CC=gcc
 LD=gcc
 
+OPTIM=-O2
 BUILD=release
 
-CFLAGS=-O2
-LDFLAGS=-O2
+CFLAGS=$(OPTIM)
+LDFLAGS=$(OPTIM)
 
 ifeq ($(BUILD), debug)
 	CFLAGS += -Wall -Wextra -g

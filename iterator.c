@@ -19,6 +19,16 @@
   "pushq %r14\n\t"                              \
   "pushq %r15")
 
+#define iterator_pop_context() asm(             \
+  "popq %r15\n\t"                               \
+  "popq %r14\n\t"                               \
+  "popq %r13\n\t"                               \
+  "popq %r12\n\t"                               \
+  "popq %rbx\n\t"                               \
+  "popq %rbp\n\t"                               \
+  "popq %rsi\n\t"                               \
+  "popq %rdi")
+
 void __attribute__((naked)) iterator_end(void) {
   asm("popq %rdi\n\t"
       "movb $1, 24(%rdi)\n\t"
@@ -46,39 +56,25 @@ void iterator_init(Iterator *iter, void (*f)(Iterator*, void*), void *args) {
   iter->rsp = rsp;
 }
 
-void* iterator_yield(Iterator *iter, void *val) {
+void* __attribute__((naked)) iterator_yield(Iterator *iter, void *val) {
   (void)iter;
+  (void)val;
   iterator_save_context();
   asm("movq 16(%rdi), %rdx\n\t"  // iter->rsp_caller => %rdx
       "movq %rsp, (%rdi)\n\t"    // %rsp => iter->rsp
       "movq %rdx, %rsp\n\t"      // %rdx (iter->rsp_caller) => %rsp
-      "movq %rsi, %rax\n\t"      // return val
-      "popq %r15\n\t"
-      "popq %r14\n\t"
-      "popq %r13\n\t"
-      "popq %r12\n\t"
-      "popq %rbx\n\t"
-      "popq %rbp\n\t"
-      "popq %rsi\n\t"
-      "popq %rdi");
-  return val;
+      "movq %rsi, %rax");        // return val
+  iterator_pop_context();
+  asm("ret");
 }
 
-void* iterator_next(Iterator *iter) {
+void* __attribute__((naked)) iterator_next(Iterator *iter) {
   (void)iter;
   iterator_save_context();
   asm("movq %rsp, 16(%rdi)\n\t"
-      "movq (%rdi), %rsp\n\t"
-      "popq %r15\n\t"
-      "popq %r14\n\t"
-      "popq %r13\n\t"
-      "popq %r12\n\t"
-      "popq %rbx\n\t"
-      "popq %rbp\n\t"
-      "popq %rsi\n\t"
-      "popq %rdi\n\t"
-      "ret");
-  return NULL; // never executed because "ret" came before
+      "movq (%rdi), %rsp");
+  iterator_pop_context();
+  asm("ret");
 }
 
 bool iterator_finish(Iterator *iter) {
