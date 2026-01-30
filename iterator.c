@@ -30,9 +30,9 @@
   "popq %rdi")
 
 void __attribute__((naked)) iterator_end(void) {
-  asm("popq %rdi\n\t"
-      "movb $1, 24(%rdi)\n\t"
-      "movq $0, %rsi\n\t"
+  asm("popq %rdi\n\t"          // pop iterator struct
+      "movb $1, 24(%rdi)\n\t"  // iter->finish = true
+      "movq $0, %rsi\n\t"      // call iterator_yield(iter, 0);
       "call iterator_yield");
   // implicit yield with 0
 }
@@ -60,6 +60,7 @@ void* __attribute__((naked)) iterator_yield(Iterator *iter, void *val) {
   (void)iter;
   (void)val;
   iterator_save_context();
+  // switch stack
   asm("movq 16(%rdi), %rdx\n\t"  // iter->rsp_caller => %rdx
       "movq %rsp, (%rdi)\n\t"    // %rsp => iter->rsp
       "movq %rdx, %rsp\n\t"      // %rdx (iter->rsp_caller) => %rsp
@@ -71,8 +72,9 @@ void* __attribute__((naked)) iterator_yield(Iterator *iter, void *val) {
 void* __attribute__((naked)) iterator_next(Iterator *iter) {
   (void)iter;
   iterator_save_context();
-  asm("movq %rsp, 16(%rdi)\n\t"
-      "movq (%rdi), %rsp");
+  // switch stack
+  asm("movq %rsp, 16(%rdi)\n\t"  // store rsp in iter->rsp_caller
+      "movq (%rdi), %rsp");      // iter->rsp => %rsp
   iterator_pop_context();
   asm("ret");
 }
